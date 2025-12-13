@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大学間乗換案内</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-blue-600">🚇 大学間乗換案内</h1>
+    
+    <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">出発地</label>
+          <select id="departure" class="w-full p-2 border border-gray-300 rounded-md">
+            <option value="">出発地を指定してください</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">到着地</label>
+          <select id="arrival" class="w-full p-2 border border-gray-300 rounded-md">
+            <option value="">到着地を指定してください</option>
+          </select>
+        </div>
+      </div>
+      
+      <button onclick="searchRoute()" class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition font-medium">
+        ルートを検索
+      </button>
+    </div>
+
+    <div id="result" class="space-y-4"></div>
+  </div>
+
+  <script>
+    // 運賃データ
+    const fareRates = {
+      "東京メトロ": [
+        { max: 6, fare: 180 },
+        { max: 11, fare: 210 },
+        { max: 19, fare: 260 },
+        { max: 27, fare: 310 },
+        { max: 40, fare: 330 }
+      ],
+      "都営地下鉄": [
+        { max: 4, fare: 180 },
+        { max: 8, fare: 220 },
+        { max: 12, fare: 270 },
+        { max: 20, fare: 320 },
+        { max: 28, fare: 370 },
+        { max: 40, fare: 430 }
+      ],
+      "JR東日本": [
+        { max: 3, fare: 155 },
+        { max: 6, fare: 199 },
+        { max: 10, fare: 209 },
+        { max: 15, fare: 253 },
+        { max: 20, fare: 297 },
+        { max: 25, fare: 341 },
+        { max: 30, fare: 440 },
+        { max: 35, fare: 528 },
+        { max: 40, fare: 616 }
+      ],
+      "京王電鉄": [
+        { max: 4, fare: 136 },
+        { max: 8, fare: 167 },
+        { max: 12, fare: 209 },
+        { max: 16, fare: 251 },
+        { max: 20, fare: 293 },
+        { max: 24, fare: 335 },
+        { max: 28, fare: 377 },
+        { max: 32, fare: 419 },
+        { max: 36, fare: 461 },
+        { max: 40, fare: 503 },
+        { max: 50, fare: 545 }
+      ],
+      "小田急電鉄": [
+        { max: 4, fare: 136 },
+        { max: 8, fare: 178 },
+        { max: 12, fare: 220 },
+        { max: 16, fare: 262 },
+        { max: 20, fare: 304 },
+        { max: 24, fare: 346 },
+        { max: 28, fare: 388 },
+        { max: 32, fare: 430 },
+        { max: 36, fare: 472 },
+        { max: 40, fare: 514 }
+      ],
+      "東急電鉄": [
+        { max: 3, fare: 136 },
+        { max: 7, fare: 157 },
+        { max: 11, fare: 199 },
+        { max: 15, fare: 220 },
+        { max: 19, fare: 262 },
+        { max: 23, fare: 283 },
+        { max: 27, fare: 325 },
+        { max: 31, fare: 346 },
+        { max: 40, fare: 388 }
+      ],
+      "西武鉄道": [
+        { max: 4, fare: 169 },
+        { max: 8, fare: 207 },
+        { max: 12, fare: 245 },
+        { max: 16, fare: 284 },
+        { max: 20, fare: 323 },
+        { max: 24, fare: 362 },
+        { max: 28, fare: 402 },
+        { max: 32, fare: 442 },
+        { max: 36, fare: 483 },
+        { max: 40, fare: 521 },
+        { max: 44, fare: 557 },
+        { max: 48, fare: 592 }
+      ],
+      "東武鉄道": [
+        { max: 3, fare: 146 },
+        { max: 7, fare: 178 },
+        { max: 11, fare: 220 },
+        { max: 15, fare: 262 },
+        { max: 19, fare: 304 },
+        { max: 23, fare: 346 },
+        { max: 27, fare: 388 },
+        { max: 31, fare: 430 },
+        { max: 35, fare: 472 },
+        { max: 39, fare: 514 },
+        { max: 43, fare: 556 },
+        { max: 47, fare: 598 }
+      ],
+      "多摩都市モノレール": [
+        { max: 3, fare: 136 },
+        { max: 6, fare: 157 },
+        { max: 9, fare: 199 },
+        { max: 12, fare: 220 },
+        { max: 15, fare: 262 },
+        { max: 20, fare: 283 }
+      ],
+      "つくばエクスプレス": [
+        { max: 5, fare: 199 },
+        { max: 10, fare: 241 },
+        { max: 15, fare: 283 },
+        { max: 20, fare: 325 },
+        { max: 25, fare: 367 },
+        { max: 30, fare: 409 },
+        { max: 35, fare: 451 },
+        { max: 40, fare: 493 },
+        { max: 45, fare: 535 },
+        { max: 50, fare: 577 },
+        { max: 55, fare: 619 },
+        { max: 60, fare: 661 }
+      ]
+    };
+
+    // キャンパスと駅のマッピング
+    const destinations = [
+      { name: "中央大学（市谷田町）", station: "市ヶ谷" },
+      { name: "中央大学（後楽園）", station: "後楽園" },
+      { name: "中央大学（茗荷谷）", station: "茗荷谷" },
+      { name: "中央大学（多摩）", station: "中央大学・明星大学" },
+      { name: "東京理科大（神楽坂）", station: "飯田橋" },
+      { name: "東京理科大（葛飾）", station: "金町" },
+      { name: "東京理科大（野田）", station: "運河" },
+      { name: "法政大学（市ヶ谷）", station: "飯田橋" },
+      { name: "上智大学（四谷）", station: "四ツ谷" },
+      { name: "日本大学（水道橋）", station: "水道橋" },
+      { name: "明治大学（和泉）", station: "明大前" },
+      { name: "東京大学（駒場）", station: "駒場東大前" },
+      { name: "早稲田大学（文）", station: "早稲田" },
+      { name: "早稲田大学（理工）", station: "西早稲田" },
+      { name: "東京科学大（湯島）", station: "御茶ノ水" },
+      { name: "東京科学大（大岡山）", station: "大岡山" },
+      { name: "武蔵野美術大学（鷹の台）", station: "鷹の台" },
+      { name: "――――――――――", station: "", disabled: true },
+      { name: "東京駅", station: "東京" },
+      { name: "舞浜駅（TDL）", station: "舞浜" }
+    ];
+
+    // キャンパスデータ（乗車位置情報）
+    const campusData = [
+      {
+        name: "中央（市ヶ谷田町）",
+        stations: [
+          { station: "市ヶ谷", line: "有楽町線", door: "1号車1番ドア", exit: "6番出口", walkFromExit: 0, walkTotal: 2, note: "出口正面" },
+          { station: "市ヶ谷", line: "南北線", door: "3号車3番ドア", exit: "6番出口", walkFromExit: 0, walkTotal: 2, note: "出口正面" },
+          { station: "市ヶ谷", line: "都営新宿線", door: "5号車4番ドア", exit: "6番出口", walkFromExit: 0, walkTotal: 2, note: "出口正面" },
+          { station: "市ヶ谷", line: "JR中央・総武線", door: "5号車2番ドア", exit: "市ヶ谷橋方面口", walkFromExit: 0, walkTotal: 3, note: "改札出て正面" }
+        ]
+      },
+      {
+        name: "中央（後楽園）",
+        stations: [
+          { station: "後楽園", line: "丸ノ内線", door: "5号車2番ドア", exit: "2番出口", walkFromExit: 1, walkTotal: 5, note: "春日通り沿い" },
+          { station: "後楽園", line: "南北線", door: "3号車3番ドア", exit: "2番出口", walkFromExit: 1, walkTotal: 5, note: "春日通り沿い" },
+          { station: "春日", line: "都営三田線", door: "6号車1番ドア", exit: "A2出口", walkFromExit: 1, walkTotal: 4, note: "春日通り沿い" },
+          { station: "春日", line: "都営大江戸線", door: "4号車4番ドア", exit: "A2出口", walkFromExit: 1, walkTotal: 4, note: "春日通り沿い" }
+        ]
+      },
+      {
+        name: "中央（茗荷谷）",
+        stations: [
+          { station: "茗荷谷", line: "丸ノ内線", door: "5号車2番ドア", exit: "2番出口", walkFromExit: 1, walkTotal: 2, note: "左手大通り沿いすぐです" }
+        ]
+      },
+      {
+        name: "中央（多摩）",
+        stations: [
+          { station: "中央大学・明星大学", line: "多摩都市モノレール", door: "不明", exit: "直結", walkFromExit: 0, walkTotal: 1, note: "右手すぐ、直結しています" }
+        ]
+      }
+    ];
+
+    // 乗り換え時間データ
+    const transferData = {
+      "飯田橋": { "JR中央・総武線 ⇔ 東京メトロ東西線": 5, "JR中央・総武線 ⇔ 東京メトロ有楽町線": 6, "JR中央・総武線 ⇔ 東京メトロ南北線": 6, "JR中央・総武線 ⇔ 都営大江戸線": 8, "東京メトロ東西線 ⇔ 東京メトロ有楽町線": 5, "東京メトロ東西線 ⇔ 東京メトロ南北線": 5, "東京メトロ東西線 ⇔ 都営大江戸線": 10, "東京メトロ有楽町線 ⇔ 東京メトロ南北線": 3, "東京メトロ有楽町線 ⇔ 都営大江戸線": 8, "東京メトロ南北線 ⇔ 都営大江戸線": 8 },
+      "市ヶ谷": { "JR中央・総武線 ⇔ 東京メトロ有楽町線": 3, "JR中央・総武線 ⇔ 東京メトロ南北線": 5, "JR中央・総武線 ⇔ 都営新宿線": 5, "東京メトロ有楽町線 ⇔ 東京メトロ南北線": 3, "東京メトロ有楽町線 ⇔ 都営新宿線": 4, "東京メトロ南北線 ⇔ 都営新宿線": 5 },
+      "四ツ谷": { "JR中央・総武線 ⇔ JR中央線快速": 3, "JR中央・総武線 ⇔ 東京メトロ丸ノ内線": 3, "JR中央・総武線 ⇔ 東京メトロ南北線": 4, "JR中央線快速 ⇔ 東京メトロ丸ノ内線": 2, "JR中央線快速 ⇔ 東京メトロ南北線": 3, "東京メトロ丸ノ内線 ⇔ 東京メトロ南北線": 3 },
+      "後楽園": { "東京メトロ丸ノ内線 ⇔ 東京メトロ南北線": 6 },
+      "春日": { "都営三田線 ⇔ 都営大江戸線": 4 },
+      "新宿": { "JR中央・総武線 ⇔ JR山手線": 3, "JR ⇔ 都営新宿線": 8, "JR ⇔ 都営大江戸線": 7, "JR ⇔ 京王線": 6, "JR ⇔ 小田急線": 5, "JR ⇔ 東京メトロ丸ノ内線": 3 },
+      "池袋": { "JR ⇔ 東京メトロ丸ノ内線": 5, "JR ⇔ 東京メトロ有楽町線": 5, "JR ⇔ 東京メトロ副都心線": 8 },
+      "渋谷": { "JR ⇔ 東京メトロ銀座線": 3, "JR ⇔ 東京メトロ半蔵門線": 7, "JR ⇔ 東京メトロ副都心線": 7, "JR ⇔ 東急東横線": 7, "JR ⇔ 京王井の頭線": 6, "東京メトロ副都心線 ⇔ 東急東横線": 1 },
+      "目黒": { "JR ⇔ 東京メトロ南北線": 6, "JR ⇔ 都営三田線": 6, "JR ⇔ 東急目黒線": 6, "東京メトロ南北線 ⇔ 都営三田線": 1, "東京メトロ南北線 ⇔ 東急目黒線": 1, "都営三田線 ⇔ 東急目黒線": 1 },
+      "大岡山": { "東急目黒線 ⇔ 東急大井町線": 3 },
+      "明大前": { "京王線 ⇔ 京王井の頭線": 3 },
+      "高幡不動": { "京王線 ⇔ 多摩モノレール": 6 },
+      "東京": { "JR各線 ⇔ 東京メトロ丸ノ内線": 6 },
+      "御茶ノ水": { "JR中央・総武線 ⇔ JR中央線快速": 1, "JR中央・総武線 ⇔ 東京メトロ丸ノ内線": 6, "JR中央線快速 ⇔ 東京メトロ丸ノ内線": 6 }
+    };
+
+    // 路線データ
+    const routeData = {
+      "JR中央・総武線": [
+        { from: "吉祥寺", to: "三鷹", time: 2, distance: 1.6 },
+        { from: "中野", to: "吉祥寺", time: 10, distance: 7.8 },
+        { from: "東中野", to: "中野", time: 3, distance: 1.9 },
+        { from: "新宿", to: "東中野", time: 5, distance: 2.5 },
+        { from: "代々木", to: "新宿", time: 2, distance: 0.7 },
+        { from: "信濃町", to: "代々木", time: 3, distance: 1.7 },
+        { from: "信濃町", to: "四ツ谷", time: 2, distance: 1.3 },
+        { from: "市ヶ谷", to: "四ツ谷", time: 2, distance: 0.8 },
+        { from: "市ヶ谷", to: "飯田橋", time: 2, distance: 1.5 },
+        { from: "飯田橋", to: "水道橋", time: 1, distance: 0.9 },
+        { from: "水道橋", to: "御茶ノ水", time: 2, distance: 0.8 },
+        { from: "御茶ノ水", to: "秋葉原", time: 2, distance: 0.9 },
+        { from: "秋葉原", to: "浅草橋", time: 2, distance: 1.1 },
+        { from: "浅草橋", to: "両国", time: 2, distance: 0.8 },
+        { from: "両国", to: "錦糸町", time: 2, distance: 1.5 },
+        { from: "錦糸町", to: "亀戸", time: 2, distance: 1.5 }
+      ],
+      "都営新宿線": [
+        { from: "市ヶ谷", to: "九段下", time: 2, distance: 1.3 },
+        { from: "神保町", to: "九段下", time: 1, distance: 0.6 },
+        { from: "神保町", to: "小川町", time: 2, distance: 0.9 },
+        { from: "小川町", to: "岩本町", time: 1, distance: 0.8 },
+        { from: "岩本町", to: "馬喰横山", time: 1, distance: 0.8 },
+        { from: "馬喰横山", to: "森下", time: 2, distance: 1.4 },
+        { from: "森下", to: "住吉", time: 3, distance: 1.7 },
+        { from: "住吉", to: "本八幡", time: 19, distance: 12.3 },
+        { from: "市ヶ谷", to: "新宿三丁目", time: 4, distance: 2.9 },
+        { from: "新宿三丁目", to: "新線新宿", time: 1, distance: 0.8 }
+      ],
+      "京王線": [
+        { from: "新線新宿", to: "笹塚", time: 6, distance: 3.6 },
+        { from: "新宿", to: "笹塚", time: 4, distance: 3.6 },
+        { from: "笹塚", to: "調布", time: 13, distance: 11.9 },
+        { from: "調布", to: "高幡不動", time: 14, distance: 14.2 },
+        { from: "高幡不動", to: "多摩動物公園", time: 3, distance: 2.0 }
+      ],
+      "東京メトロ南北線": [
+        { from: "王子", to: "駒込", time: 4, distance: 2.4 },
+        { from: "駒込", to: "東大前", time: 3, distance: 2.3 },
+        { from: "後楽園", to: "東大前", time: 3, distance: 1.3 },
+        { from: "飯田橋", to: "後楽園", time: 1, distance: 1.4 },
+        { from: "市ヶ谷", to: "飯田橋", time: 2, distance: 1.5 },
+        { from: "市ヶ谷", to: "四ツ谷", time: 1, distance: 1.0 },
+        { from: "四ツ谷", to: "永田町", time: 2, distance: 1.5 },
+        { from: "永田町", to: "溜池山王", time: 1, distance: 0.7 },
+        { from: "溜池山王", to: "目黒", time: 12, distance: 5.7 }
+      ],
+      "東急目黒線東急大井町線": [
+        { from: "目黒", to: "大岡山", time: 6, distance: 4.3 },
+        { from: "大岡山", to: "武蔵小杉", time: 9, distance: 5.3 }
+      ],
+      "東急大井町線": [
+        { from: "大岡山", to: "自由が丘", time: 3, distance: 1.5 },
+        { from: "大岡山", to: "中延", time: 6, distance: 2.7 },
+        { from: "中延", to: "大井町", time: 4, distance: 2.1 }
+      ],
+      "東京メトロ有楽町線": [
+        { from: "有楽町", to: "永田町", time: 4, distance: 1.9 },
+        { from: "市ヶ谷", to: "永田町", time: 3, distance: 1.8 },
+        { from: "市ヶ谷", to: "飯田橋", time: 2, distance: 1.5 },
+        { from: "飯田橋", to: "池袋", time: 9, distance: 4.9 }
+      ],
+      "東京メトロ丸ノ内線": [
+        { from: "池袋", to: "茗荷谷", time: 5, distance: 3.0 },
+        { from: "茗荷谷", to: "後楽園", time: 3, distance: 1.8 },
+        { from: "後楽園", to: "本郷三丁目", time: 1, distance: 0.8 },
+        { from: "本郷三丁目", to: "御茶ノ水", time: 1, distance: 0.8 },
+        { from: "御茶ノ水", to: "淡路町", time: 1, distance: 0.8 },
+        { from: "淡路町", to: "大手町", time: 1, distance: 0.9 },
+        { from: "大手町", to: "東京", time: 1, distance: 0.6 },
+        { from: "東京", to: "銀座", time: 2, distance: 1.1 },
+        { from: "銀座", to: "霞ヶ関", time: 1, distance: 1.0 },
+        { from: "霞ヶ関", to: "国会議事堂前", time: 1, distance: 0.7 },
+        { from: "国会議事堂前", to: "赤坂見附", time: 1, distance: 0.9 },
+        { from: "赤坂見附", to: "四ツ谷", time: 2, distance: 1.3 },
+        { from: "四ツ谷", to: "新宿三丁目", time: 5, distance: 2.6 },
+        { from: "新宿三丁目", to: "新宿", time: 1, distance: 0.3 },
+        { from: "新宿", to: "中野坂上", time: 4, distance: 1.9 },
+        { from: "中野坂上", to: "荻窪", time: 10, distance: 5.7 }
+      ],
+      "東京メトロ東西線": [
+        { from: "中野", to: "高田馬場", time: 6, distance: 3.9 },
+        { from: "高田馬場", to: "早稲田", time: 2, distance: 1.7 },
+        { from: "早稲田", to: "飯田橋", time: 4, distance: 2.4 },
+        { from: "飯田橋", to: "九段下", time: 1, distance: 0.7 },
+        { from: "九段下", to: "大手町", time: 4, distance: 2.1 },
+        { from: "大手町", to: "日本橋", time: 2, distance: 0.8 },
+        { from: "日本橋", to: "茅場町", time: 1, distance: 0.5 },
+        { from: "茅場町", to: "門前仲町", time: 3, distance: 1.8 }
+      ],
+      "東京メトロ千代田線": [
+        { from: "代々木上原", to: "明治神宮前", time: 4, distance: 2.2 },
+        { from: "明治神宮前", to: "表参道", time: 1, distance: 0.9 },
+        { from: "表参道", to: "国会議事堂前", time: 6, distance: 3.3 },
+        { from: "国会議事堂前", to: "霞ヶ関", time: 1, distance: 0.8 },
+        { from: "霞ヶ関", to: "日比谷", time: 1, distance: 0.8 },
+        { from: "日比谷", to: "大手町", time: 3, distance: 1.4 },
+        { from: "大手町", to: "新御茶ノ水", time: 2, distance: 1.3 },
+        { from: "新御茶ノ水", to: "西日暮里", time: 7, distance: 4.3 },
+        { from: "西日暮里", to: "町屋", time: 3, distance: 1.7 },
+        { from: "町屋", to: "北千住", time: 3, distance: 2.6 }
+      ],
+      "JR常磐緩行線": [
+        { from: "北千住", to: "綾瀬", time: 3, distance: 2.6 },
+        { from: "綾瀬", to: "金町", time: 7, distance: 4.1 }
+      ],
+      "東京メトロ副都心線": [
+        { from: "池袋", to: "西早稲田", time: 5, distance: 3.3 },
+        { from: "西早稲田", to: "東新宿", time: 1, distance: 0.9 },
+        { from: "東新宿", to: "新宿三丁目", time: 2, distance: 1.1 },
+        { from: "新宿三丁目", to: "明治神宮前", time: 4, distance: 2.6 },
+        { from: "明治神宮前", to: "渋谷", time: 2, distance: 1.0 }
+      ],
+      "東急東横線": [
+        { from: "渋谷", to: "中目黒", time: 5, distance: 2.2 },
+        { from: "中目黒", to: "自由が丘", time: 6, distance: 4.8 },
+        { from: "自由が丘", to: "武蔵小杉", time: 6, distance: 3.8 }
+      ],
+      "都営三田線": [
+        { from: "目黒", to: "三田", time: 9, distance: 4.0 },
+        { from: "三田", to: "日比谷", time: 6, distance: 3.3 },
+        { from: "日比谷", to: "大手町", time: 1, distance: 0.9 },
+        { from: "大手町", to: "神保町", time: 2, distance: 1.7 },
+        { from: "神保町", to: "水道橋", time: 2, distance: 1.0 },
+        { from: "水道橋", to: "春日", time: 1, distance: 0.7 },
+        { from: "春日", to: "巣鴨", time: 5, distance: 3.3 }
+      ],
+      "都営大江戸線": [
+        { from: "都庁前", to: "中野坂上", time: 4, distance: 2.0 },
+        { from: "中野坂上", to: "東中野", time: 2, distance: 1.0 },
+        { from: "東中野", to: "練馬", time: 8, distance: 5.3 },
+        { from: "都庁前", to: "東新宿", time: 5, distance: 2.2 },
+        { from: "東新宿", to: "飯田橋", time: 8, distance: 3.6 },
+        { from: "飯田橋", to: "春日", time: 1, distance: 1.0 },
+        { from: "春日", to: "本郷三丁目", time: 1, distance: 0.8 },
+        { from: "本郷三丁目", to: "上野御徒町", time: 2, distance: 1.1 },
+        { from: "上野御徒町", to: "蔵前", time: 3, distance: 1.8 },
+        { from: "蔵前", to: "両国", time: 2, distance: 1.2 },
+        { from: "両国", to: "森下", time: 2, distance: 1.0 },
+        { from: "森下", to: "清澄白河", time: 1, distance: 0.6 },
+        { from: "清澄白河", to: "門前仲町", time: 2, distance: 1.2 },
+        { from: "門前仲町", to: "大門", time: 11, distance: 5.5 },
+        { from: "大門", to: "青山一丁目", time: 9, distance: 4.5 },
+        { from: "青山一丁目", to: "代々木", time: 5, distance: 2.7 },
+        { from: "代々木", to: "新宿", time: 1, distance: 0.6 }
+      ],
+      "京王井の頭線": [
+        { from: "渋谷", to: "駒場東大前", time: 3, distance: 1.4 },
+        { from: "駒場東大前", to: "下北沢", time: 3, distance: 1.6 },
+        { from: "下北沢", to: "明大前", time: 4, distance: 1.9 },
+        { from: "明大前", to: "永福町", time: 2, distance: 1.1 },
+        { from: "永福町", to: "吉祥寺", time: 10, distance: 6.7 }
+      ],
+      "多摩都市モノレール": [
+        { from: "多摩センター", to: "大塚・帝京大学", time: 4, distance: 1.7 },
+        { from: "大塚・帝京大学", to: "中央大学・明星大学", time: 1, distance: 0.9 },
+        { from: "中央大学・明星大学", to: "多摩動物公園", time: 2, distance: 1.1 },
+        { from: "多摩動物公園", to: "高幡不動", time: 5, distance: 1.8 },
+        { from: "高幡不動", to: "立川南", time: 10, distance: 4.7 },
+        { from: "立川南", to: "立川北", time: 1, distance: 0.4 },
+        { from: "立川北", to: "玉川上水", time: 9, distance: 3.9 }
+      ],
+      "JR山手線": [
+        { from: "品川", to: "大崎", time: 3, distance: 2.0 },
+        { from: "大崎", to: "五反田", time: 2, distance: 0.9 },
+        { from: "五反田", to: "目黒", time: 2, distance: 1.2 },
+        { from: "目黒", to: "恵比寿", time: 2, distance: 1.5 },
+        { from: "恵比寿", to: "渋谷", time: 4, distance: 1.6 },
+        { from: "渋谷", to: "原宿", time: 3, distance: 1.2 },
+        { from: "原宿", to: "代々木", time: 2, distance: 1.5 },
+        { from: "代々木", to: "新宿", time: 3, distance: 0.7 },
+        { from: "新宿", to: "高田馬場", time: 4, distance: 2.7 },
+        { from: "高田馬場", to: "池袋", time: 5, distance: 2.1 },
+        { from: "池袋", to: "大塚", time: 2, distance: 1.8 },
+        { from: "大塚", to: "巣鴨", time: 2, distance: 1.1 },
+        { from: "巣鴨", to: "駒込", time: 2, distance: 0.7 },
+        { from: "駒込", to: "田端", time: 3, distance: 1.6 },
+        { from: "田端", to: "西日暮里", time: 1, distance: 0.8 },
+        { from: "西日暮里", to: "日暮里", time: 2, distance: 0.5 },
+        { from: "日暮里", to: "上野", time: 4, distance: 2.2 },
+        { from: "上野", to: "御徒町", time: 2, distance: 0.6 },
+        { from: "御徒町", to: "秋葉原", time: 2, distance: 1.0 },
+        { from: "秋葉原", to: "神田", time: 1, distance: 0.7 },
+        { from: "神田", to: "東京", time: 2, distance: 1.3 },
+        { from: "東京", to: "有楽町", time: 2, distance: 0.8 },
+        { from: "有楽町", to: "新橋", time: 2, distance: 1.1 },
+        { from: "新橋", to: "浜松町", time: 2, distance: 1.2 },
+        { from: "浜松町", to: "田町", time: 3, distance: 1.5 },
+        { from: "田町", to: "高輪ゲートウェイ", time: 3, distance: 1.3 },
+        { from: "高輪ゲートウェイ", to: "品川", time: 2, distance: 0.9 }
+      ],
+      "JR常磐線": [
+        { from: "品川", to: "新橋", time: 5, distance: 4.9 },
+        { from: "新橋", to: "東京", time: 3, distance: 1.9 },
+        { from: "東京", to: "上野", time: 6, distance: 3.6 },
+        { from: "上野", to: "日暮里", time: 3, distance: 2.2 },
+        { from: "日暮里", to: "南千住", time: 5, distance: 3.4 },
+        { from: "南千住", to: "北千住", time: 2, distance: 1.8 },
+        { from: "北千住", to: "柏", time: 17, distance: 21.7 }
+      ],
+      "東武野田線": [
+        { from: "大宮", to: "春日部", time: 17, distance: 15.2 },
+        { from: "春日部", to: "運河", time: 26, distance: 18.0 },
+        { from: "運河", to: "流山おおたかの森", time: 7, distance: 5.2 },
+        { from: "流山おおたかの森", to: "柏", time: 6, distance: 4.5 },
+        { from: "柏", to: "新鎌ヶ谷", time: 10, distance: 10.4 },
+        { from: "新鎌ヶ谷", to: "船橋", time: 8, distance: 9.4 }
+      ],
+      "西武国分寺線": [
+        { from: "国分寺", to: "鷹の台", time: 5, distance: 3.6 },
+        { from: "小川", to: "鷹の台", time: 2, distance: 1.5 }
+      ],
+      "西武新宿線・拝島線": [
+        { from: "西武新宿", to: "高田馬場", time: 3, distance: 2.0 },
+        { from: "高田馬場", to: "小平", time: 26, distance: 20.6 },
+        { from: "小平", to: "所沢", time: 7, distance: 6.3 },
+        { from: "小平", to: "小川", time: 5, distance: 2.7 },
+        { from: "小川", to: "東大和市", time: 3, distance: 3.0 },
+        { from: "東大和市", to: "玉川上水", time: 2, distance: 1.5 }
+      ],
+      "東京メトロ日比谷線": [
+        { from: "中目黒", to: "恵比寿", time: 2, distance: 1.0 },
+        { from: "恵比寿", to: "霞が関", time: 12, distance: 6.0 },
+        { from: "霞が関", to: "日比谷", time: 2, distance: 1.2 },
+        { from: "日比谷", to: "銀座", time: 1, distance: 0.4 },
+        { from: "銀座", to: "八丁堀", time: 6, distance: 2.0 },
+        { from: "八丁堀", to: "茅場町", time: 1, distance: 0.5 },
+        { from: "茅場町", to: "人形町", time: 2, distance: 0.9 },
+        { from: "人形町", to: "秋葉原", time: 4, distance: 1.5 },
+        { from: "秋葉原", to: "仲御徒町", time: 2, distance: 1.0 },
+        { from: "仲御徒町", to: "上野", time: 1, distance: 0.5 },
+        { from: "上野", to: "南千住", time: 6, distance: 3.2 },
+        { from: "南千住", to: "北千住", time: 2, distance: 2.1 }
+      ],
+      "東京メトロ半蔵門線": [
+        { from: "渋谷", to: "表参道", time: 2, distance: 1.3 },
+        { from: "表参道", to: "青山一丁目", time: 2, distance: 1.4 },
+        { from: "青山一丁目", to: "永田町", time: 1, distance: 1.4 },
+        { from: "永田町", to: "九段下", time: 4, distance: 2.6 },
+        { from: "九段下", to: "神保町", time: 1, distance: 0.4 },
+        { from: "神保町", to: "大手町", time: 3, distance: 1.7 },
+        { from: "大手町", to: "三越前", time: 2, distance: 0.7 },
+        { from: "三越前", to: "水天宮前", time: 3, distance: 1.3 },
+        { from: "水天宮前", to: "清澄白河", time: 3, distance: 1.7 },
+        { from: "清澄白河", to: "住吉", time: 3, distance: 1.9 },
+        { from: "住吉", to: "錦糸町", time: 2, distance: 1.0 },
+        { from: "錦糸町", to: "押上", time: 2, distance: 1.4 },
+        { from: "曳舟", to: "押上", time: 2, distance: 1.3 }
+      ],
+      "東武スカイツリーライン": [
+        { from: "浅草", to: "曳舟", time: 5, distance: 2.4 },
+        { from: "曳舟", to: "北千住", time: 7, distance: 4.7 },
+        { from: "北千住", to: "春日部", time: 20, distance: 28.2 }
+      ],
+      "JR京浜東北線": [
+        { from: "大宮", to: "浦和", time: 9, distance: 6.1 },
+        { from: "浦和", to: "南浦和", time: 3, distance: 1.7 },
+        { from: "南浦和", to: "赤羽", time: 12, distance: 9.3 },
+        { from: "赤羽", to: "王子", time: 5, distance: 3.3 },
+        { from: "王子", to: "田端", time: 5, distance: 2.8 }
+      ],
+      "東京メトロ銀座線": [
+        { from: "渋谷", to: "表参道", time: 2, distance: 1.2 },
+        { from: "表参道", to: "青山一丁目", time: 4, distance: 1.4 },
+        { from: "青山一丁目", to: "赤坂見附", time: 2, distance: 1.3 },
+        { from: "赤坂見附", to: "溜池山王", time: 1, distance: 0.7 },
+        { from: "溜池山王", to: "新橋", time: 3, distance: 1.6 },
+        { from: "新橋", to: "銀座", time: 2, distance: 0.9 },
+        { from: "銀座", to: "日本橋", time: 3, distance: 1.4 },
+        { from: "日本橋", to: "三越前", time: 1, distance: 0.6 },
+        { from: "三越前", to: "神田", time: 1, distance: 0.7 },
+        { from: "神田", to: "上野広小路", time: 3, distance: 1.7 },
+        { from: "上野広小路", to: "上野", time: 1, distance: 0.5 },
+        { from: "上野", to: "浅草", time: 5, distance: 2.2 }
+      ],
+      "都営浅草線": [
+        { from: "押上", to: "浅草", time: 3, distance: 1.5 },
+        { from: "浅草", to: "蔵前", time: 1, distance: 0.9 },
+        { from: "蔵前", to: "浅草橋", time: 2, distance: 0.7 },
+        { from: "浅草橋", to: "東日本橋", time: 1, distance: 0.7 },
+        { from: "東日本橋", to: "人形町", time: 1, distance: 0.7 },
+        { from: "人形町", to: "日本橋", time: 2, distance: 0.8 },
+        { from: "日本橋", to: "新橋", time: 5, distance: 2.5 },
+        { from: "新橋", to: "大門", time: 1, distance: 1.0 },
+        { from: "大門", to: "三田", time: 2, distance: 1.5 },
+        { from: "三田", to: "泉岳寺", time: 2, distance: 1.1 },
+        { from: "泉岳寺", to: "五反田", time: 4, distance: 2.1 },
+        { from: "五反田", to: "中延", time: 4, distance: 2.7 }
+      ],
+      "JR中央線快速": [
+        { from: "東京", to: "神田", time: 1, distance: 1.3 },
+        { from: "神田", to: "御茶ノ水", time: 1, distance: 1.3 },
+        { from: "御茶ノ水", to: "四谷", time: 4, distance: 4.0 },
+        { from: "四谷", to: "新宿", time: 4, distance: 3.7 },
+        { from: "新宿", to: "中野", time: 4, distance: 4.4 },
+        { from: "中野", to: "吉祥寺", time: 11, distance: 7.8 },
+        { from: "吉祥寺", to: "三鷹", time: 3, distance: 1.6 },
+        { from: "三鷹", to: "国分寺", time: 7, distance: 7.3 },
+        { from: "国分寺", to: "西国分寺", time: 2, distance: 1.4 },
+        { from: "国分寺", to: "立川", time: 5, distance: 4.7 },
+        { from: "立川", to: "豊田", time: 6, distance: 5.6 }
+      ],
+      "東武亀戸線": [
+        { from: "亀戸", to: "曳舟", time: 8, distance: 3.4 }
+      ],
+      "JR総武快速線": [
+        { from: "東京", to: "新日本橋", time: 3, distance: 1.2 },
+        { from: "新日本橋", to: "馬喰町", time: 2, distance: 1.1 },
+        { from: "馬喰町", to: "錦糸町", time: 4, distance: 2.5 },
+        { from: "錦糸町", to: "新小岩", time: 5, distance: 5.2 },
+        { from: "新小岩", to: "市川", time: 5, distance: 5.4 },
+        { from: "市川", to: "船橋", time: 6, distance: 7.8 }
+      ],
+      "西武池袋線": [
+        { from: "池袋", to: "練馬", time: 11, distance: 6.0 },
+        { from: "練馬", to: "所沢", time: 23, distance: 18.8 }
+      ],
+      "JR宇都宮線・高崎線": [
+        { from: "上野", to: "赤羽", time: 12, distance: 9.8 },
+        { from: "赤羽", to: "浦和", time: 9, distance: 11.0 },
+        { from: "浦和", to: "大宮", time: 8, distance: 6.1 }
+      ],
+      "JR湘南新宿ライン": [
+        { from: "大宮", to: "浦和", time: 6, distance: 6.1 },
+        { from: "浦和", to: "赤羽", time: 8, distance: 11.0 },
+        { from: "赤羽", to: "池袋", time: 10, distance: 5.5 },
+        { from: "池袋", to: "新宿", time: 6, distance: 4.8 },
+        { from: "新宿", to: "渋谷", time: 5, distance: 3.4 },
+        { from: "渋谷", to: "恵比寿", time: 2, distance: 1.6 },
+        { from: "恵比寿", to: "大崎", time: 4, distance: 3.6 },
+        { from: "大崎", to: "武蔵小杉", time: 9, distance: 12.0 }
+      ],
+      "JR埼京線": [
+        { from: "大宮", to: "武蔵浦和", time: 11, distance: 7.4 },
+        { from: "武蔵浦和", to: "赤羽", time: 10, distance: 10.6 },
+        { from: "赤羽", to: "池袋", time: 9, distance: 5.5 },
+        { from: "池袋", to: "新宿", time: 6, distance: 4.8 },
+        { from: "新宿", to: "渋谷", time: 5, distance: 3.4 },
+        { from: "渋谷", to: "恵比寿", time: 2, distance: 1.6 },
+        { from: "恵比寿", to: "大崎", time: 4, distance: 3.6 },
+        { from: "大崎", to: "武蔵小杉", time: 9, distance: 12.0 }
+      ],
+      "つくばエクスプレス": [
+        { from: "秋葉原", to: "新御徒町", time: 2, distance: 1.6 },
+        { from: "新御徒町", to: "浅草", time: 2, distance: 1.5 },
+        { from: "浅草", to: "南千住", time: 3, distance: 2.5 },
+        { from: "南千住", to: "北千住", time: 2, distance: 1.9 },
+        { from: "北千住", to: "南流山", time: 15, distance: 14.6 },
+        { from: "南流山", to: "流山おおたかの森", time: 4, distance: 4.4 }
+      ],
+      "小田急小田原線・多摩線": [
+        { from: "新宿", to: "代々木上原", time: 5, distance: 3.5 },
+        { from: "代々木上原", to: "下北沢", time: 2, distance: 1.4 },
+        { from: "下北沢", to: "登戸", time: 10, distance: 10.3 },
+        { from: "登戸", to: "新百合ヶ丘", time: 10, distance: 6.3 },
+        { from: "新百合ヶ丘", to: "小田急多摩センター", time: 12, distance: 9.1 }
+      ],
+      "JR南武線": [
+        { from: "川崎", to: "武蔵小杉", time: 8, distance: 7.5 },
+        { from: "武蔵小杉", to: "武蔵溝ノ口", time: 7, distance: 5.2 },
+        { from: "武蔵溝ノ口", to: "登戸", time: 5, distance: 4.6 },
+        { from: "登戸", to: "稲田堤", time: 3, distance: 3.5 },
+        { from: "稲田堤", to: "府中本町", time: 7, distance: 7.1 },
+        { from: "府中本町", to: "分倍河原", time: 1, distance: 0.9 },
+        { from: "分倍河原", to: "立川", time: 7, distance: 6.7 }
+      ],
+      "JR京葉線・武蔵野線": [
+        { from: "東京", to: "八丁堀", time: 2, distance: 1.2 },
+        { from: "八丁堀", to: "新木場", time: 8, distance: 6.2 },
+        { from: "新木場", to: "舞浜", time: 6, distance: 5.3 },
+        { from: "舞浜", to: "市川塩浜", time: 6, distance: 5.5 },
+        { from: "市川塩浜", to: "西船橋", time: 8, distance: 5.9 },
+        { from: "西船橋", to: "東松戸", time: 9, distance: 7.2 },
+        { from: "東松戸", to: "新松戸", time: 7, distance: 6.5 },
+        { from: "新松戸", to: "南流山", time: 2, distance: 2.1 },
+        { from: "南流山", to: "南越谷", time: 14, distance: 11.9 },
+        { from: "南越谷", to: "東川口", time: 4, distance: 4.3 },
+        { from: "東川口", to: "南浦和", time: 8, distance: 7.5 },
+        { from: "南浦和", to: "武蔵浦和", time: 3, distance: 1.9 },
+        { from: "武蔵浦和", to: "北朝霞", time: 7, distance: 7.0 },
+        { from: "北朝霞", to: "新秋津", time: 10, distance: 9.8 },
+        { from: "新秋津", to: "西国分寺", time: 8, distance: 9.1 },
+        { from: "西国分寺", to: "府中本町", time: 5, distance: 3.9 }
+      ]
+    };
+
+    // 駅選択ドロップダウンを初期化
+    function initializeStationSelects() {
+      const departureSelect = document.getElementById('departure');
+      const arrivalSelect = document.getElementById('arrival');
+      
+      destinations.forEach(dest => {
+        if (dest.disabled) {
+          const opt1 = new Option(dest.name, "", false, false);
+          opt1.disabled = true;
+          const opt2 = new Option(dest.name, "", false, false);
+          opt2.disabled = true;
+          departureSelect.add(opt1);
+          arrivalSelect.add(opt2);
+        } else {
+          departureSelect.add(new Option(dest.name, dest.station));
+          arrivalSelect.add(new Option(dest.name, dest.station));
+        }
+      });
+    }
+
+    // 路線グラフを構築（双方向対応）
+    function buildGraph() {
+      const graph = {};
+      
+      Object.entries(routeData).forEach(([lineName, segments]) => {
+        segments.forEach(segment => {
+          // 順方向
+          if (!graph[segment.from]) graph[segment.from] = [];
+          graph[segment.from].push({
+            station: segment.to,
+            line: lineName,
+            time: segment.time,
+            distance: segment.distance
+          });
+          
+          // 逆方向も追加
+          if (!graph[segment.to]) graph[segment.to] = [];
+          graph[segment.to].push({
+            station: segment.from,
+            line: lineName,
+            time: segment.time,
+            distance: segment.distance
+          });
+        });
+      });
+      
+      return graph;
+    }
+
+    // 乗り換え時間を取得
+    function getTransferTime(station, line1, line2) {
+      if (line1 === line2) return 0;
+      
+      const transfers = transferData[station];
+      if (!transfers) return 5; // デフォルト5分
+      
+      const key1 = `${line1} ⇔ ${line2}`;
+      const key2 = `${line2} ⇔ ${line1}`;
+      
+      return transfers[key1] || transfers[key2] || 5;
+    }
+
+    // ダイクストラ法で最短経路を探索（バグ修正版）
+    function findRoute(start, end, mode = 'time') {
+      const graph = buildGraph();
+      
+      if (!graph[start] || !graph[end]) {
+        return null;
+      }
+      
+      const dist = {};
+      const prev = {};
+      const lineUsed = {};
+      const unvisited = new Set(Object.keys(graph));
+      
+      // 初期化
+      Object.keys(graph).forEach(station => {
+        dist[station] = Infinity;
+      });
+      dist[start] = 0;
+      
+      while (unvisited.size > 0) {
+        // 最小距離の駅を選択
+        let current = null;
+        let minDist = Infinity;
+        
+        unvisited.forEach(station => {
+          if (dist[station] < minDist) {
+            minDist = dist[station];
+            current = station;
+          }
+        });
+        
+        if (current === null || current === end || dist[current] === Infinity) break;
+        
+        unvisited.delete(current);
+        
+        // 隣接駅を探索
+        graph[current].forEach(edge => {
+          if (!unvisited.has(edge.station)) return;
+          
+          let weight = mode === 'time' ? edge.time : edge.distance;
+          
+          // 乗り換え時間を加算
+          if (prev[current]) {
+            const prevLine = lineUsed[current];
+            if (prevLine && prevLine !== edge.line) {
+              const transferTime = getTransferTime(current, prevLine, edge.line);
+              weight += transferTime;
+            }
+          }
+          
+          const newDist = dist[current] + weight;
+          
+          if (newDist < dist[edge.station]) {
+            dist[edge.station] = newDist;
+            prev[edge.station] = current;
+            lineUsed[edge.station] = edge.line;
+          }
+        });
+      }
+      
+      if (dist[end] === Infinity) return null;
+      
+      // 経路を復元
+      const path = [];
+      let current = end;
+      
+      while (current !== start) {
+        path.unshift(current);
+        current = prev[current];
+        if (!current) return null;
+      }
+      path.unshift(start);
+      
+      // 詳細セグメントを生成
+      const segments = [];
+      for (let i = 0; i < path.length - 1; i++) {
+        const from = path[i];
+        const to = path[i + 1];
+        const line = lineUsed[to];
+        
+        // routeDataから実際の時間と距離を取得
+        const routeSegment = routeData[line]?.find(seg => 
+          (seg.from === from && seg.to === to) || (seg.from === to && seg.to === from)
+        );
+        
+        if (routeSegment) {
+          segments.push({
+            line: line,
+            from: from,
+            to: to,
+            time: routeSegment.time,
+            distance: routeSegment.distance
+          });
+        }
+      }
+      
+      return {
+        path: path,
+        segments: segments,
+        totalTime: Math.round(dist[end]),
+        totalDistance: segments.reduce((sum, seg) => sum + seg.distance, 0)
+      };
+    }
+    // 運賃を計算
+    function calculateFare(segments) {
+      const companyDistances = {};
+      
+      segments.forEach(seg => {
+        const company = getCompany(seg.line);
+        if (!companyDistances[company]) {
+          companyDistances[company] = 0;
+        }
+        companyDistances[company] += seg.distance;
+      });
+      
+      let totalFare = 0;
+      Object.entries(companyDistances).forEach(([company, distance]) => {
+        const rates = fareRates[company];
+        if (!rates) {
+          console.warn(`運賃データがありません: ${company}`);
+          return;
+        }
+        
+        for (let i = 0; i < rates.length; i++) {
+          if (distance <= rates[i].max) {
+            totalFare += rates[i].fare;
+            break;
+          }
+        }
+      });
+      
+      // メトロ・都営の乗継割引
+      if (companyDistances["東京メトロ"] && companyDistances["都営地下鉄"]) {
+        totalFare -= 70;
+      }
+      
+      return totalFare;
+    }
+
+    // 路線から鉄道会社を判定
+    function getCompany(line) {
+      if (line.includes("東京メトロ")) return "東京メトロ";
+      if (line.includes("都営")) return "都営地下鉄";
+      if (line.includes("JR")) return "JR東日本";
+      if (line.includes("京王")) return "京王電鉄";
+      if (line.includes("小田急")) return "小田急電鉄";
+      if (line.includes("東急")) return "東急電鉄";
+      if (line.includes("西武")) return "西武鉄道";
+      if (line.includes("東武")) return "東武鉄道";
+      if (line.includes("多摩モノレール") || line.includes("多摩都市モノレール")) return "多摩都市モノレール";
+      if (line.includes("つくばエクスプレス")) return "つくばエクスプレス";
+      
+      return "その他";
+    }
+
+    // 乗換回数をカウント
+    function countTransfers(segments) {
+      let count = 0;
+      for (let i = 1; i < segments.length; i++) {
+        if (segments[i].line !== segments[i-1].line) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    // 検索実行（早・安・短の3ルート）
+    function searchRoute() {
+      const departure = document.getElementById('departure').value;
+      const arrival = document.getElementById('arrival').value;
+      
+      if (!departure || !arrival) {
+        alert('出発地と到着地を選択してください');
+        return;
+      }
+      
+      if (departure === arrival) {
+        alert('出発地と到着地が同じです');
+        return;
+      }
+      
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<div class="text-center text-gray-600">検索中...</div>';
+      
+      setTimeout(() => {
+        // 早ルート（時間最小）
+        const fastestRoute = findRoute(departure, arrival, 'time');
+        
+        // 安ルート（距離最小＝運賃最小）
+        const cheapestRoute = findRoute(departure, arrival, 'distance');
+        
+        if (!fastestRoute) {
+          resultDiv.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <strong>ルートが見つかりません</strong><br>
+              ${departure} から ${arrival} への経路は、このシステムのデータに含まれていません。
+            </div>
+          `;
+          return;
+        }
+        
+        // ルートの重複を排除してラベル統合
+        const routeMap = new Map();
+        
+        const fastestKey = JSON.stringify(fastestRoute.path);
+        routeMap.set(fastestKey, {
+          route: fastestRoute,
+          labels: ['早']
+        });
+        
+        if (cheapestRoute) {
+          const cheapestKey = JSON.stringify(cheapestRoute.path);
+          if (routeMap.has(cheapestKey)) {
+            routeMap.get(cheapestKey).labels.push('安');
+          } else {
+            routeMap.set(cheapestKey, {
+              route: cheapestRoute,
+              labels: ['安']
+            });
+          }
+        }
+        
+        // 短ルート（乗換最少）を簡易実装
+        // 乗換回数が最少のルートを選択
+        let shortRoute = null;
+        let minTransfers = Infinity;
+        
+        routeMap.forEach(({ route }) => {
+          const transfers = countTransfers(route.segments);
+          if (transfers < minTransfers) {
+            minTransfers = transfers;
+            shortRoute = route;
+          }
+        });
+        
+        if (shortRoute) {
+          const shortKey = JSON.stringify(shortRoute.path);
+          if (routeMap.has(shortKey)) {
+            routeMap.get(shortKey).labels.push('短');
+          } else {
+            routeMap.set(shortKey, {
+              route: shortRoute,
+              labels: ['短']
+            });
+          }
+        }
+        
+        // 結果を表示
+        resultDiv.innerHTML = '';
+        routeMap.forEach(({ route, labels }) => {
+          displayRoute(route, labels, departure, arrival);
+        });
+      }, 100);
+    }
+
+    // 簡易版経路（駅リスト）を生成
+    function getSimpleRoute(segments, start, end) {
+      if (segments.length === 0) return [start, end];
+      
+      const result = [start];
+      let currentLine = segments[0].line;
+      
+      for (let i = 0; i < segments.length; i++) {
+        if (i > 0 && segments[i].line !== currentLine) {
+          result.push(segments[i].from);
+          currentLine = segments[i].line;
+        }
+      }
+      
+      result.push(end);
+      return result;
+    }
+
+    // 詳細ルート生成（路線ごとにまとめる）
+    function generateDetailedRoute(route) {
+      let html = '';
+      let currentLine = null;
+      let lineSegments = [];
+      
+      for (let i = 0; i < route.segments.length; i++) {
+        const seg = route.segments[i];
+        
+        if (currentLine !== null && seg.line !== currentLine) {
+          html += generateLineSection(currentLine, lineSegments);
+          lineSegments = [];
+        }
+        
+        currentLine = seg.line;
+        lineSegments.push(seg);
+      }
+      
+      if (lineSegments.length > 0) {
+        html += generateLineSection(currentLine, lineSegments);
+      }
+      
+      return html;
+    }
+
+    // 路線セクションを生成
+    function generateLineSection(lineName, segments) {
+      if (segments.length === 0) return '';
+      
+      const firstSeg = segments[0];
+      const lastSeg = segments[segments.length - 1];
+      const totalTime = segments.reduce((sum, seg) => sum + seg.time, 0);
+      
+      return `
+        <div class="mb-3">
+          <div class="text-sm font-semibold text-blue-600">${lineName}</div>
+          <div class="text-sm ml-4">
+            ${firstSeg.from} → ${lastSeg.to} (約${totalTime}分)
+          </div>
+        </div>
+      `;
+    }
+
+    // キャンパス情報生成
+    function generateCampusInfo(end) {
+      const campusInfo = campusData.find(c => 
+        c.stations.some(s => s.station === end)
+      );
+      
+      if (campusInfo) {
+        const stationInfo = campusInfo.stations.find(s => s.station === end);
+        if (stationInfo) {
+          return `
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div class="font-bold text-blue-800 mb-2">🚃 乗車位置情報</div>
+              <div class="text-sm text-gray-700">
+                <div><strong>乗車位置:</strong> ${stationInfo.door}</div>
+                <div><strong>出口:</strong> ${stationInfo.exit}</div>
+                <div><strong>キャンパスまで:</strong> 徒歩約${stationInfo.walkTotal}分</div>
+                ${stationInfo.note ? `<div class="text-xs text-gray-600 mt-1">※ ${stationInfo.note}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }
+      }
+      return '';
+    }
+
+    // 経路を表示（バッジ付き）
+    function displayRoute(route, labels, start, end) {
+      const resultDiv = document.getElementById('result');
+      const fare = calculateFare(route.segments);
+      const transfers = countTransfers(route.segments);
+      const simpleStations = getSimpleRoute(route.segments, start, end);
+      
+      // バッジの色
+      const badgeColors = {
+        '早': 'bg-blue-500',
+        '安': 'bg-green-500',
+        '短': 'bg-purple-500'
+      };
+      
+      const badges = labels.map(label => 
+        `<span class="inline-block px-2 py-1 text-xs font-bold text-white rounded ${badgeColors[label] || 'bg-gray-500'}">${label}</span>`
+      ).join(' ');
+      
+      const uniqueId = route.path.join('-').replace(/[^a-zA-Z0-9-]/g, '_');
+      
+      const routeCard = document.createElement('div');
+      routeCard.className = 'bg-white rounded-lg shadow-md p-4 md:p-6 mb-4';
+      routeCard.innerHTML = `
+        <h2 class="text-lg md:text-xl font-bold text-blue-600 mb-3 flex items-center gap-2 flex-wrap">
+          ${badges}
+          <span>${labels.join('・')}ルート</span>
+        </h2>
+        <div class="grid grid-cols-3 gap-2 md:gap-4 mb-4 text-center">
+          <div>
+            <div class="text-xl md:text-2xl font-bold text-blue-600">${route.totalTime}分</div>
+            <div class="text-xs md:text-sm text-gray-600">所要時間</div>
+          </div>
+          <div>
+            <div class="text-xl md:text-2xl font-bold text-green-600">${fare}円</div>
+            <div class="text-xs md:text-sm text-gray-600">運賃(IC)</div>
+          </div>
+          <div>
+            <div class="text-xl md:text-2xl font-bold text-purple-600">${transfers}回</div>
+            <div class="text-xs md:text-sm text-gray-600">乗換</div>
+          </div>
+        </div>
+        
+        <div class="simple-view-${uniqueId} border-t pt-4">
+          <div class="flex items-center justify-center gap-2 text-sm md:text-base flex-wrap">
+            ${simpleStations.map((station, idx) => {
+              if (idx === simpleStations.length - 1) {
+                return `<span class="font-bold text-blue-600">${station}</span>`;
+              } else {
+                return `<span class="font-bold text-blue-600">${station}</span> <span class="text-gray-400">→</span>`;
+              }
+            }).join('')}
+          </div>
+          <div class="text-center mt-4">
+            <button onclick="toggleDetail('${uniqueId}')" class="bg-gray-200 hover:bg-gray-300 px-4 md:px-6 py-2 rounded-md transition text-sm md:text-base">
+              詳細を表示 ▼
+            </button>
+          </div>
+        </div>
+        
+        <div class="detail-view-${uniqueId} border-t pt-4 hidden">
+          ${generateDetailedRoute(route)}
+          ${generateCampusInfo(end)}
+          <div class="text-center mt-4">
+            <button onclick="toggleDetail('${uniqueId}')" class="bg-gray-200 hover:bg-gray-300 px-4 md:px-6 py-2 rounded-md transition text-sm md:text-base">
+              簡易表示に戻す ▲
+            </button>
+          </div>
+        </div>
+      `;
+      
+      resultDiv.appendChild(routeCard);
+    }
+
+    // 詳細表示切り替え
+    function toggleDetail(id) {
+      const simpleView = document.querySelector(`.simple-view-${id}`);
+      const detailView = document.querySelector(`.detail-view-${id}`);
+      
+      if (detailView && detailView.classList.contains('hidden')) {
+        if (simpleView) simpleView.classList.add('hidden');
+        detailView.classList.remove('hidden');
+      } else if (detailView) {
+        if (simpleView) simpleView.classList.remove('hidden');
+        detailView.classList.add('hidden');
+      }
+    }
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', () => {
+      initializeStationSelects();
+    });
+  </script>
+</body>
+</html>
