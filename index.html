@@ -104,7 +104,7 @@
       </div>
     </section>
 
-    <!-- 情報エリア（NEW） -->
+    <!-- 情報エリア -->
     <section id="info-area" class="card hidden">
       <h2>ℹ️ 情報</h2>
       
@@ -152,7 +152,7 @@
     </div>
   </div>
 
-  <!-- 説明モーダル（NEW） -->
+  <!-- 説明モーダル -->
   <div id="descModal" class="modal hidden">
     <div class="modal-content">
       <button id="descClose" class="modal-close">✕</button>
@@ -164,18 +164,8 @@
     </div>
   </div>
 
-  <!-- スクリプト読み込み -->
-<script type="module">
-  import { loadCSV } from "./js/csvLoader.js";
-  import { initFestivals } from "./js/modules/festivals.js";
-  import { initOptions } from "./js/modules/options.js";
-  import { initLinks } from "./js/modules/links.js";
-  import { initContact } from "./js/modules/contact.js";
-  import initMain from "./js/main.js";
-
-  initMain();
-</script>
-
+  <!-- スクリプト読み込み（JSON対応版） -->
+  <script src="script.js"></script>
 
 </body>
 </html>
