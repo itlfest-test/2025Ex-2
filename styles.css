@@ -709,3 +709,35 @@ select.options{
     min-width: auto;
   }
 }
+
+/* イベントカードの説明文を2行に制限 */
+.event-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5em;
+  max-height: 3em; /* 1.5em × 2行 */
+}
+
+/* カードをクリッカブルに */
+.result-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* スライダーをクリッカブルに */
+.festival-slider-card {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.festival-slider-card:hover {
+  transform: scale(1.02);
+}
