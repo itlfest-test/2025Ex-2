@@ -1,12 +1,11 @@
 // ============================
-// script.js - JSON対応版
+// script.js - 修正版（API削除）
 // ============================
 
 // --- constants / keys
 const FAVORITES_KEY = "favorites";
 const HISTORY_KEY = "favorite_history";
 const HISTORY_MAX = 15;
-const SUMMARIES_KEY = "event_summaries";
 
 // --- グローバルデータ保持用
 let eventsData = [];
@@ -20,7 +19,6 @@ let contactData = null;
 // ============================
 async function loadAllData() {
   try {
-    // 並列読み込み
     const [events, options, festivals, links, contact] = await Promise.all([
       fetch('data/events.json').then(r => r.json()),
       fetch('data/options.json').then(r => r.json()),
@@ -43,7 +41,7 @@ async function loadAllData() {
   }
 }
 
-// --- データアクセサ（統一版：英語キー優先）
+// --- データアクセサ
 function getAllEvents() {
   return Array.isArray(eventsData) ? eventsData : [];
 }
@@ -107,122 +105,58 @@ function formatDateTime(startStr, endStr) {
 }
 
 // ============================
-// 🤖 Claude APIで説明文を要約
-// ============================
-async function getSummary(eventId, fullDescription) {
-  // キャッシュチェック
-  const cache = JSON.parse(localStorage.getItem(SUMMARIES_KEY) || "{}");
-  if (cache[eventId]) {
-    return cache[eventId];
-  }
-
-  // 説明文が短い場合はそのまま返す
-  if (fullDescription.length <= 60) {
-    return fullDescription;
-  }
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [
-          {
-            role: "user",
-            content: `以下のイベント説明文を、1-2行（30-50文字程度）に要約してください。魅力的で簡潔に。
-
-説明文：
-${fullDescription}
-
-要約のみを出力してください。`
-          }
-        ],
-      })
-    });
-
-    const data = await response.json();
-    const summary = data.content
-      .filter(item => item.type === "text")
-      .map(item => item.text)
-      .join("")
-      .trim();
-
-    // キャッシュに保存
-    cache[eventId] = summary;
-    localStorage.setItem(SUMMARIES_KEY, JSON.stringify(cache));
-
-    return summary;
-  } catch (error) {
-    console.error("要約生成エラー:", error);
-    return fullDescription.slice(0, 50) + "...";
-  }
-}
-
-// ============================
 // 初期ロード
 // ============================
 document.addEventListener("DOMContentLoaded", async () => {
-  // データ読み込み
   const loaded = await loadAllData();
   if (!loaded) return;
 
-  // ① セレクトボックスの読み込み
   try {
     loadOptionsSafe();
   } catch (e) {
     console.warn("loadOptionsSafe error:", e);
   }
 
-  // ② ナビゲーション
   try {
     setupNavigation();
   } catch (e) {
     console.warn("setupNavigation error:", e);
   }
 
-  // ③ 初回モーダル
   try {
     setupIntroModal();
   } catch (e) {
     console.warn("setupIntroModal error:", e);
   }
 
-  // ④ 学祭情報スライダー
   try {
     setupFestivalSlider();
   } catch (e) {
     console.warn("setupFestivalSlider error:", e);
   }
 
-  // ⑤ 情報ページ（リンク集・問い合わせ）
   try {
     setupInfoPage();
   } catch (e) {
     console.warn("setupInfoPage error:", e);
   }
 
-  // ⑥ 説明ボタン
   try {
     setupDescriptionButtons();
   } catch (e) {
     console.warn("setupDescriptionButtons error:", e);
   }
 
-  // ⑦ 初期表示
   renderResults(getAllEvents());
   loadFavorites();
   loadHistory();
 
-  // ⑧ イベント登録
   const sBtn = document.getElementById("searchBtn");
   const cBtn = document.getElementById("clearBtn");
   if (sBtn) sBtn.addEventListener("click", onSearch);
   if (cBtn) cBtn.addEventListener("click", onClear);
 });
+
 // ============================
 // 🎪 学祭情報スライダー
 // ============================
@@ -235,7 +169,6 @@ function setupFestivalSlider() {
   const nextBtn = document.getElementById("sliderNext");
   const dotsContainer = document.getElementById("sliderDots");
 
-  // ドット生成
   festivalsData.forEach((_, index) => {
     const dot = document.createElement("button");
     dot.className = "slider-dot";
@@ -244,14 +177,10 @@ function setupFestivalSlider() {
     dotsContainer.appendChild(dot);
   });
 
-  // ボタンイベント
   if (prevBtn) prevBtn.addEventListener("click", () => changeSlide(-1));
   if (nextBtn) nextBtn.addEventListener("click", () => changeSlide(1));
 
-  // 初期表示
   updateSlide();
-
-  // 自動スライド（5秒ごと）
   setInterval(() => changeSlide(1), 5000);
 }
 
@@ -285,18 +214,39 @@ function updateSlide() {
   if (highlightEl) highlightEl.textContent = `目玉企画：${festival.highlight}`;
   if (messageEl) messageEl.textContent = festival.message;
 
-  // ドット更新
   const dots = document.querySelectorAll(".slider-dot");
   dots.forEach((dot, index) => {
     dot.classList.toggle("active", index === currentSlide);
   });
+
+  // 🆕 スライダークリックで大学名検索
+  const sliderCard = document.querySelector('.festival-slider-card');
+  if (sliderCard) {
+    sliderCard.style.cursor = 'pointer';
+    sliderCard.onclick = () => {
+      const uniEl = document.getElementById("university");
+      if (uniEl) {
+        // festivalsDataのuniversityとoptionsDataのマッチング
+        const universityName = festival.campus; // "市谷田町キャンパス" など
+        const matchingOption = optionsData.universityOptions.find(opt => 
+          opt.includes(festival.university.replace("大学", "")) && 
+          opt.includes(universityName.replace("キャンパス", "").replace("（", "").replace("）", ""))
+        );
+        
+        if (matchingOption) {
+          uniEl.value = matchingOption;
+          onSearch();
+          document.getElementById("search-area")?.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    };
+  }
 }
 
 // ============================
-// ℹ️ 情報ページ（リンク集・問い合わせ）
+// ℹ️ 情報ページ
 // ============================
 function setupInfoPage() {
-  // リンク集
   const linksList = document.getElementById("links-list");
   if (linksList && linksData && linksData.length > 0) {
     linksData.forEach(link => {
@@ -323,7 +273,6 @@ function setupInfoPage() {
     });
   }
 
-  // 問い合わせ先
   const contactInfo = document.getElementById("contact-info");
   if (contactInfo && contactData && contactData.email) {
     contactInfo.innerHTML = `
@@ -440,7 +389,7 @@ function onClear() {
 }
 
 // ============================
-// 📄 結果表示（async対応版）
+// 📄 結果表示
 // ============================
 async function renderResults(list) {
   const area = document.getElementById("results");
@@ -460,8 +409,9 @@ async function renderResults(list) {
     area.appendChild(card);
   }
 }
+
 // ============================
-// カード生成（要約版 → カードクリックで別ページ遷移版）
+// カード生成（修正版：API削除、詳細ページ遷移）
 // ============================
 async function createEventCard(ev) {
   const card = document.createElement("article");
@@ -471,20 +421,15 @@ async function createEventCard(ev) {
   const favs = loadFavoritesArray();
   const isFav = favs.includes(ev.id);
 
-  const dateTimeStr = formatDateTime(evStartDateTime(ev), evEndDateTime(ev));
-  const placeStr = evPlace(ev);
   const fullDescription = evDescription(ev);
   const university = evUniversity(ev);
-
-  // 要約を生成（非同期）
-  const summary = await getSummary(ev.id, fullDescription);
 
   card.innerHTML = `
     <button class="fav-btn ${isFav ? "active" : ""}" data-id="${ev.id}" aria-label="お気に入り">⭐</button>
     <h4>${escapeHtml(evTitle(ev))}</h4>
-    <p class="muted event-summary">${escapeHtml(summary)}</p>
+    <p class="muted event-summary">${escapeHtml(fullDescription)}</p>
     <div class="card-meta">
-      <span class="university-tag" style="cursor: pointer; text-decoration: underline;">
+      <span class="university-tag">
         ${escapeHtml(university)}
       </span> /
       ${escapeHtml(evCategory(ev))} /
@@ -492,37 +437,19 @@ async function createEventCard(ev) {
     </div>
   `;
 
-  // ============================
-  // 🟣 カードクリック → event.html?id=◯◯ へ遷移
-  // ============================
-  card.addEventListener("click", () => {
-    window.location.href = `event.html?id=${ev.id}`;
+  // 🆕 カードクリック → event_detail.html?id=◯◯ へ遷移
+  card.addEventListener("click", (e) => {
+    // お気に入りボタンのクリックは除外
+    if (e.target.closest('.fav-btn')) return;
+    window.location.href = `event_detail.html?id=${ev.id}`;
   });
 
-  // ============================
-  // ⭐ お気に入りボタン（カード遷移を阻止）
-  // ============================
+  // ⭐ お気に入りボタン
   const favBtn = card.querySelector(".fav-btn");
   if (favBtn) {
     favBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleFavorite(ev);
-    });
-  }
-
-  // ============================
-  // 🎓 大学名クリック（遷移阻止して検索フィルタ適用）
-  // ============================
-  const universityTag = card.querySelector(".university-tag");
-  if (universityTag) {
-    universityTag.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const uniEl = document.getElementById("university");
-      if (uniEl) {
-        uniEl.value = university;
-        onSearch();
-        document.getElementById("search-area")?.scrollIntoView({ behavior: "smooth" });
-      }
     });
   }
 
@@ -591,16 +518,6 @@ function toggleFavorite(ev) {
   else renderResults(getAllEvents());
 }
 
-// ============================
-// ⭐ お気に入り表示
-// ============================
-function loadFavorites() {
-  renderFavorites();
-}
-function loadHistory() {
-  renderHistory();
-}
-
 async function renderFavorites() {
   const list = document.getElementById("favorites-list");
   if (!list) return;
@@ -620,6 +537,13 @@ async function renderFavorites() {
       list.appendChild(card);
     }
   }
+}
+
+function loadFavorites() {
+  renderFavorites();
+}
+function loadHistory() {
+  renderHistory();
 }
 
 // ============================
@@ -738,6 +662,7 @@ function setupIntroModal() {
     });
   });
 }
+
 // ============================
 // 📌 セレクト選択肢ロード
 // ============================
@@ -757,7 +682,6 @@ function loadOptionsSafe() {
       return;
     }
 
-    // university
     if (Array.isArray(optionsData.universityOptions)) {
       uniEl.innerHTML = `<option value="">指定なし</option>`;
       optionsData.universityOptions.forEach((u) => {
@@ -768,7 +692,6 @@ function loadOptionsSafe() {
       });
     }
 
-    // category（説明付き）
     if (Array.isArray(optionsData.categoryOptions)) {
       catEl.innerHTML = `<option value="">指定なし</option>`;
       optionsData.categoryOptions.forEach((c) => {
@@ -779,7 +702,6 @@ function loadOptionsSafe() {
       });
     }
 
-    // field（説明付き）
     if (Array.isArray(optionsData.fieldOptions)) {
       fieldEl.innerHTML = `<option value="">指定なし</option>`;
       optionsData.fieldOptions.forEach((f) => {
