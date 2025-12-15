@@ -221,23 +221,38 @@ function updateSlide() {
 
   // 🆕 スライダークリックで大学名検索
   const sliderCard = document.querySelector('.festival-slider-card');
-  if (sliderCard) {
+  if (sliderCard && optionsData) {
     sliderCard.style.cursor = 'pointer';
-    sliderCard.onclick = () => {
+    // 既存のイベントリスナーを削除
+    const newSliderCard = sliderCard.cloneNode(true);
+    sliderCard.parentNode.replaceChild(newSliderCard, sliderCard);
+    
+    newSliderCard.onclick = () => {
       const uniEl = document.getElementById("university");
-      if (uniEl) {
-        // festivalsDataのuniversityとoptionsDataのマッチング
-        const universityName = festival.campus; // "市谷田町キャンパス" など
-        const matchingOption = optionsData.universityOptions.find(opt => 
-          opt.includes(festival.university.replace("大学", "")) && 
-          opt.includes(universityName.replace("キャンパス", "").replace("（", "").replace("）", ""))
-        );
-        
-        if (matchingOption) {
-          uniEl.value = matchingOption;
-          onSearch();
+      if (!uniEl) return;
+      
+      // 大学名とキャンパスからマッチング
+      const uniName = festival.university.replace("大学", "");
+      const campusName = festival.campus
+        .replace("キャンパス", "")
+        .replace("（", "")
+        .replace("）", "");
+      
+      // optionsDataから一致するものを探す
+      const matchingOption = optionsData.universityOptions.find(opt => {
+        return opt.includes(uniName) && opt.includes(campusName);
+      });
+      
+      if (matchingOption) {
+        uniEl.value = matchingOption;
+        onSearch();
+        // 検索タブに切り替え
+        const searchBtn = document.querySelector('.nav-btn[data-view="search"]');
+        if (searchBtn) searchBtn.click();
+        // スクロール
+        setTimeout(() => {
           document.getElementById("search-area")?.scrollIntoView({ behavior: "smooth" });
-        }
+        }, 100);
       }
     };
   }
