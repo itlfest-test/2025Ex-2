@@ -96,6 +96,34 @@
       <div id="fav-history"></div>
     </section>
 
+    <!-- 乗換案内エリア -->
+  <div id="transit-area" class="hidden">
+    <h2>🚇 大学間乗換案内</h2>
+  
+    <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">出発地</label>
+          <select id="transit-departure" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="">出発地を選択してください</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">到着地</label>
+          <select id="transit-arrival" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="">到着地を選択してください</option>
+          </select>
+        </div>
+      </div>
+    
+      <button onclick="searchTransitRoute()" style="width: 100%; background: #2563eb; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: 500; cursor: pointer;">
+        ルートを検索
+      </button>
+    </div>
+
+    <div id="transit-result"></div>
+  </div>
+
     <!-- 地図エリア -->
     <section id="map-area" class="card hidden">
       <h2>🗺️ キャンパスマップ</h2>
