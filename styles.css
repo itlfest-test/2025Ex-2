@@ -710,15 +710,16 @@ select.options{
   }
 }
 
-/* イベントカードの説明文を2行に制限 */
+/* イベントカードの説明文を完全に2行表示 */
 .event-summary {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.5em;
-  max-height: 3em; /* 1.5em × 2行 */
+  line-height: 1.6em; /* 行間を広げる */
+  max-height: 3.2em; /* 1.6em × 2行 = 3.2em */
+  min-height: 3.2em; /* 高さを固定 */
 }
 
 /* カードをクリッカブルに */
