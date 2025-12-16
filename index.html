@@ -74,6 +74,21 @@
         </select>
       </div>
 
+      <div class="filter-group">
+        <label class="filter-title" for="date">開催日
+          <button class="info-btn" data-type="date" aria-label="開催日の説明">?</button>
+        </label>
+        <select id="date" class="options">
+          <option value="">指定なし</option>
+          <option value="2025-11-01">11月1日（土）</option>
+          <option value="2025-11-02">11月2日（日）</option>
+          <option value="2025-11-03">11月3日（月）</option>
+          <option value="2025-11-04">11月4日（火）</option>
+          <option value="2025-11-22">11月22日（土）</option>
+          <option value="2025-11-23">11月23日（日）</option>
+        </select>
+      </div>
+
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button id="searchBtn" class="btn primary-3d" style="flex:1;">検索</button>
         <button id="clearBtn" class="btn ghost">クリア</button>
@@ -82,7 +97,7 @@
 
     <!-- 検索結果エリア -->
     <section id="results-area">
-      <h2>📋 検索結果</h2>
+      <h2 id="results-title">📋 検索結果 <span id="filter-status" class="filter-status">(全体)</span></h2>
       <div id="results" class="results-grid"></div>
       <div id="no-results" class="muted" hidden>該当する企画が見つかりませんでした。</div>
     </section>
