@@ -718,8 +718,8 @@ select.options{
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.6em; /* 行間を広げる */
-  max-height: 3.2em; /* 1.6em × 2行 = 3.2em */
-  min-height: 3.2em; /* 高さを固定 */
+  max-height: 3.5em;
+  min-height: 3.5em; /* 高さを固定 */
 }
 
 /* カードをクリッカブルに */
