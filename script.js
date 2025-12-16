@@ -637,6 +637,7 @@ function setupNavigation() {
       const transitArea = document.getElementById("transit-area");
       const mapArea = document.getElementById("map-area");
       const infoArea = document.getElementById("info-area");
+      const sliderSection = document.getElementById("festival-slider-section");
 
       if (searchArea) searchArea.classList.toggle("hidden", view !== "search");
       if (resultsArea) resultsArea.classList.toggle("hidden", view !== "search");
@@ -644,6 +645,11 @@ function setupNavigation() {
       if (transitArea) transitArea.classList.toggle("hidden", view !== "transit");
       if (mapArea) mapArea.classList.toggle("hidden", view !== "map");
       if (infoArea) infoArea.classList.toggle("hidden", view !== "info");
+      
+      // スライダーは検索ページのみ表示
+      if (sliderSection) {
+        sliderSection.classList.toggle("hidden", view !== "search");
+      }
 
       if (view === "favorites") {
         renderFavorites();
@@ -861,7 +867,7 @@ const transferData = {
   "春日": { "都営三田線 ⇔ 都営大江戸線": 4 }
 };
 
-// 路線データ（南北線を修正済み）
+// 路線データ（完全版）
 const routeData = {
   "東京メトロ南北線": [
     { from: "王子", to: "駒込", time: 4, distance: 2.4 },
@@ -892,7 +898,45 @@ const routeData = {
     { from: "池袋", to: "茗荷谷", time: 5, distance: 3.0 },
     { from: "茗荷谷", to: "後楽園", time: 3, distance: 1.8 },
     { from: "後楽園", to: "本郷三丁目", time: 1, distance: 0.8 },
-    { from: "本郷三丁目", to: "御茶ノ水", time: 1, distance: 0.8 }
+    { from: "本郷三丁目", to: "御茶ノ水", time: 1, distance: 0.8 },
+    { from: "御茶ノ水", to: "淡路町", time: 1, distance: 0.8 },
+    { from: "淡路町", to: "大手町", time: 1, distance: 0.9 },
+    { from: "大手町", to: "東京", time: 1, distance: 0.6 }
+  ],
+  "JR山手線": [
+    { from: "渋谷", to: "原宿", time: 3, distance: 1.2 },
+    { from: "原宿", to: "代々木", time: 2, distance: 1.5 },
+    { from: "代々木", to: "新宿", time: 3, distance: 0.7 },
+    { from: "新宿", to: "高田馬場", time: 4, distance: 2.7 },
+    { from: "高田馬場", to: "池袋", time: 5, distance: 2.1 },
+    { from: "池袋", to: "大塚", time: 2, distance: 1.8 },
+    { from: "大塚", to: "巣鴨", time: 2, distance: 1.1 },
+    { from: "巣鴨", to: "駒込", time: 2, distance: 0.7 },
+    { from: "駒込", to: "田端", time: 3, distance: 1.6 },
+    { from: "田端", to: "西日暮里", time: 1, distance: 0.8 },
+    { from: "西日暮里", to: "日暮里", time: 2, distance: 0.5 },
+    { from: "日暮里", to: "上野", time: 4, distance: 2.2 },
+    { from: "上野", to: "御徒町", time: 2, distance: 0.6 },
+    { from: "御徒町", to: "秋葉原", time: 2, distance: 1.0 },
+    { from: "秋葉原", to: "神田", time: 1, distance: 0.7 },
+    { from: "神田", to: "東京", time: 2, distance: 1.3 },
+    { from: "渋谷", to: "恵比寿", time: 4, distance: 1.6 },
+    { from: "恵比寿", to: "目黒", time: 2, distance: 1.5 }
+  ],
+  "東急目黒線": [
+    { from: "目黒", to: "大岡山", time: 6, distance: 4.3 }
+  ],
+  "東急大井町線": [
+    { from: "大岡山", to: "自由が丘", time: 3, distance: 1.5 }
+  ],
+  "東急東横線": [
+    { from: "渋谷", to: "中目黒", time: 5, distance: 2.2 },
+    { from: "中目黒", to: "自由が丘", time: 6, distance: 4.8 }
+  ],
+  "京王井の頭線": [
+    { from: "渋谷", to: "駒場東大前", time: 3, distance: 1.4 },
+    { from: "駒場東大前", to: "下北沢", time: 3, distance: 1.6 },
+    { from: "下北沢", to: "明大前", time: 4, distance: 1.9 }
   ]
 };
 
