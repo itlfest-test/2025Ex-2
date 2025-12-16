@@ -117,6 +117,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("loadOptionsSafe error:", e);
   }
 
+  // URLパラメータから検索条件を復元
+  restoreSearchFromURL();
+
   try {
     setupNavigation();
   } catch (e) {
@@ -147,7 +150,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("setupDescriptionButtons error:", e);
   }
 
-  renderResults(getAllEvents());
+  // 初期表示（検索条件があれば絞り込み済み、なければ全体）
+  const hasFilters = checkIfFiltersApplied();
+  if (hasFilters) {
+    onSearch();
+  } else {
+    renderResults(getAllEvents());
+  }
+  
   loadFavorites();
   loadHistory();
 
@@ -381,26 +391,102 @@ function onSearch() {
   const uni = (document.getElementById("university") || {}).value || "";
   const cat = (document.getElementById("category") || {}).value || "";
   const field = (document.getElementById("field") || {}).value || "";
+  const date = (document.getElementById("date") || {}).value || "";
+
+  // 検索条件を保存
+  saveSearchFilters({ university: uni, category: cat, field: field, date: date });
 
   const all = getAllEvents();
   const filtered = all.filter((ev) => {
     if (uni && evUniversity(ev) !== uni) return false;
     if (cat && evCategory(ev) !== cat) return false;
     if (field && evField(ev) !== field) return false;
+    if (date) {
+      const evStart = evStartDateTime(ev);
+      if (!evStart) return false;
+      const evDate = evStart.split('T')[0]; // YYYY-MM-DD形式に変換
+      if (evDate !== date) return false;
+    }
     return true;
   });
 
   renderResults(filtered);
+  updateFilterStatus();
 }
 
 function onClear() {
   const uniEl = document.getElementById("university");
   const catEl = document.getElementById("category");
   const fieldEl = document.getElementById("field");
+  const dateEl = document.getElementById("date");
   if (uniEl) uniEl.value = "";
   if (catEl) catEl.value = "";
   if (fieldEl) fieldEl.value = "";
+  if (dateEl) dateEl.value = "";
+  
+  // 検索条件をクリア
+  saveSearchFilters({ university: "", category: "", field: "", date: "" });
+  
   renderResults(getAllEvents());
+  updateFilterStatus();
+}
+
+// 検索条件を保存
+function saveSearchFilters(filters) {
+  localStorage.setItem('searchFilters', JSON.stringify(filters));
+}
+
+// URLパラメータから検索条件を復元
+function restoreSearchFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const uni = params.get('uni');
+  const cat = params.get('cat');
+  const field = params.get('field');
+  const date = params.get('date');
+
+  if (uni || cat || field || date) {
+    const uniEl = document.getElementById("university");
+    const catEl = document.getElementById("category");
+    const fieldEl = document.getElementById("field");
+    const dateEl = document.getElementById("date");
+    
+    if (uniEl && uni) uniEl.value = uni;
+    if (catEl && cat) catEl.value = cat;
+    if (fieldEl && field) fieldEl.value = field;
+    if (dateEl && date) dateEl.value = date;
+
+    saveSearchFilters({ university: uni || "", category: cat || "", field: field || "", date: date || "" });
+  }
+}
+
+// フィルタが適用されているか確認
+function checkIfFiltersApplied() {
+  const uniEl = document.getElementById("university");
+  const catEl = document.getElementById("category");
+  const fieldEl = document.getElementById("field");
+  const dateEl = document.getElementById("date");
+  
+  return (uniEl && uniEl.value) || 
+         (catEl && catEl.value) || 
+         (fieldEl && fieldEl.value) ||
+         (dateEl && dateEl.value);
+}
+
+// フィルタ状態表示を更新
+function updateFilterStatus() {
+  const statusEl = document.getElementById("filter-status");
+  if (!statusEl) return;
+
+  const hasFilters = checkIfFiltersApplied();
+  if (hasFilters) {
+    statusEl.textContent = "(絞り込み)";
+    statusEl.style.color = "#dc2626";
+    statusEl.style.fontWeight = "600";
+  } else {
+    statusEl.textContent = "(全体)";
+    statusEl.style.color = "#6b7280";
+    statusEl.style.fontWeight = "normal";
+  }
 }
 
 // ============================
