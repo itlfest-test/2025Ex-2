@@ -1375,3 +1375,175 @@ function generateTransitLineSection(lineName, segments) {
     </div>
   `;
 }
+/* ==========================================
+   カレンダー機能
+   ========================================== */
+
+let currentCalendarMonth = 9; // 0=1月, 9=10月
+let currentCalendarYear = 2025;
+
+// カレンダーを初期化
+function initCalendar() {
+  const prevBtn = document.getElementById('calendar-prev-month');
+  const nextBtn = document.getElementById('calendar-next-month');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      changeMonth(-1);
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      changeMonth(1);
+    });
+  }
+  
+  renderCalendar();
+}
+
+// 月を変更
+function changeMonth(delta) {
+  currentCalendarMonth += delta;
+  
+  if (currentCalendarMonth < 0) {
+    currentCalendarMonth = 11;
+    currentCalendarYear--;
+  } else if (currentCalendarMonth > 11) {
+    currentCalendarMonth = 0;
+    currentCalendarYear++;
+  }
+  
+  // 10月と11月のみ表示
+  if (currentCalendarYear === 2025 && (currentCalendarMonth < 9 || currentCalendarMonth > 10)) {
+    if (delta > 0) {
+      currentCalendarMonth = 9;
+    } else {
+      currentCalendarMonth = 10;
+    }
+  }
+  
+  renderCalendar();
+}
+
+// カレンダーを描画
+function renderCalendar() {
+  const titleEl = document.getElementById('calendar-month-title');
+  const gridEl = document.getElementById('calendar-grid');
+  
+  if (!titleEl || !gridEl) return;
+  
+  // タイトル更新
+  titleEl.textContent = `${currentCalendarYear}年${currentCalendarMonth + 1}月`;
+  
+  // グリッドをクリア
+  gridEl.innerHTML = '';
+  
+  // 曜日ヘッダー
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+  weekdays.forEach(day => {
+    const header = document.createElement('div');
+    header.className = 'calendar-day-header';
+    header.textContent = day;
+    gridEl.appendChild(header);
+  });
+  
+  // 月の最初の日と最後の日
+  const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
+  const lastDay = new Date(currentCalendarYear, currentCalendarMonth + 1, 0);
+  const firstDayOfWeek = firstDay.getDay(); // 0=日曜
+  const daysInMonth = lastDay.getDate();
+  
+  // LocalStorageからカレンダーイベントを取得
+  const calendarEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+  
+  // イベント数を日付ごとに集計
+  const eventsByDate = {};
+  calendarEvents.forEach(event => {
+    const startDate = new Date(event.startDatetime);
+    const dateKey = `${startDate.getFullYear()}-${startDate.getMonth()}-${startDate.getDate()}`;
+    eventsByDate[dateKey] = (eventsByDate[dateKey] || 0) + 1;
+  });
+  
+  // 空白セル（月初めまで）
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-day empty';
+    gridEl.appendChild(emptyCell);
+  }
+  
+  // 日付セル
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = `${currentCalendarYear}-${currentCalendarMonth}-${day}`;
+    const eventCount = eventsByDate[dateKey] || 0;
+    
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    
+    if (eventCount > 0) {
+      dayCell.classList.add('has-event');
+    }
+    
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = day;
+    dayCell.appendChild(dayNumber);
+    
+    if (eventCount > 0) {
+      const countBadge = document.createElement('div');
+      countBadge.className = 'calendar-day-count';
+      countBadge.textContent = `${eventCount}件`;
+      dayCell.appendChild(countBadge);
+    }
+    
+    // クリック時にその日のイベントを表示
+    dayCell.addEventListener('click', () => {
+      showEventsForDate(currentCalendarYear, currentCalendarMonth, day);
+    });
+    
+    gridEl.appendChild(dayCell);
+  }
+}
+
+// 指定日のイベントを表示
+function showEventsForDate(year, month, day) {
+  const calendarEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+  
+  const eventsOnDate = calendarEvents.filter(event => {
+    const startDate = new Date(event.startDatetime);
+    return startDate.getFullYear() === year && 
+           startDate.getMonth() === month && 
+           startDate.getDate() === day;
+  });
+  
+  if (eventsOnDate.length === 0) {
+    alert(`${year}年${month + 1}月${day}日にイベントはありません`);
+    return;
+  }
+  
+  let message = `📅 ${year}年${month + 1}月${day}日のイベント（${eventsOnDate.length}件）\n\n`;
+  eventsOnDate.forEach((event, index) => {
+    const startTime = new Date(event.startDatetime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    message += `${index + 1}. ${event.name}\n`;
+    message += `   ${startTime}〜 / ${event.university}\n\n`;
+  });
+  
+  alert(message);
+}
+
+// お気に入りページ表示時にカレンダーを初期化
+const originalSetupNav = setupNavigation;
+setupNavigation = function() {
+  originalSetupNav();
+  
+  // お気に入りページが表示されたらカレンダーを初期化
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.view === 'favorites') {
+        setTimeout(() => {
+          initCalendar();
+        }, 100);
+      }
+    });
+  });
+};
