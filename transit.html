@@ -155,13 +155,7 @@
         { max: 140, fare: 1393 },
         { max: 178, fare: 1581 },
       ],
-      "多摩都市モノレール": [
-        { max: 3, fare: 214 },
-        { max: 5, fare: 265 },
-        { max: 7, fare: 316 },
-        { max: 10, fare: 367 },
-        { max: 16, fare: 408 }
-      ],
+      "多摩都市モノレール": "special",
       "つくばエクスプレス": [
         { max: 5, fare: 199 },
         { max: 10, fare: 241 },
@@ -178,6 +172,47 @@
       ]
     };
 
+    // 多摩モノレール専用運賃計算
+function calculateTamaMonorailFare(path) {
+  const stations = path.map(p => p.station);
+  
+  // 立川北・立川南の両方を通過するかチェック
+  const hasTachikawaKita = stations.includes("立川北");
+  const hasTachikawaminami = stations.includes("立川南");
+  
+  let stationCount = stations.length - 1; // 駅数 = 駅の数 - 1
+  
+  // 立川北と立川南の両方を通過する場合、1駅分減らす（同一駅扱い）
+  if (hasTachikawaKita && hasTachikawaminami) {
+    stationCount = stationCount - 1;
+  }
+  
+  // 直接 立川北⇔立川南 の移動
+  if (stationCount === 1 && hasTachikawaKita && hasTachikawaminami) {
+    return 102;
+  }
+  
+  // 隣駅（1駅）
+  if (stationCount === 1) {
+    return 102;
+  }
+  
+  // 距離計算（経路から総距離を計算）
+  let totalDistance = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const edge = path[i].edges.find(e => e.to === path[i + 1].station);
+    if (edge) totalDistance += edge.distance;
+  }
+  
+  // 距離制運賃表
+  if (totalDistance <= 3) return 214;
+  if (totalDistance <= 5) return 265;
+  if (totalDistance <= 7) return 316;
+  if (totalDistance <= 10) return 367;
+  if (totalDistance <= 16) return 408;
+  return 408;
+}
+    
     // キャンパスと駅のマッピング
     const destinations = [
       { name: "中央大学（市谷田町）", station: "市ヶ谷" },
@@ -444,7 +479,7 @@ const routeData = {
         { from: "永田町", to: "溜池山王", time: 1, distance: 0.7 },
         { from: "溜池山王", to: "目黒", time: 12, distance: 5.7 }
     ],
-    "東急目黒線東急大井町線": [
+    "東急目黒線": [
         { from: "目黒", to: "大岡山", distance: 4.3, trains: [
             { type: "急行", time: 6 },
             { type: "各停", time: 9 }
@@ -983,33 +1018,98 @@ const routeData = {
         totalDistance: segments.reduce((sum, seg) => sum + seg.distance, 0)
       };
     }
+
     // 運賃を計算
-    function calculateFare(segments) {
-      const companyDistances = {};
-      
-      segments.forEach(seg => {
-        const company = getCompany(seg.line);
-        if (!companyDistances[company]) {
-          companyDistances[company] = 0;
-        }
-        companyDistances[company] += seg.distance;
-      });
-      
-      let totalFare = 0;
-      Object.entries(companyDistances).forEach(([company, distance]) => {
-        const rates = fareRates[company];
-        if (!rates) {
-          console.warn(`運賃データがありません: ${company}`);
-          return;
-        }
-        
-        for (let i = 0; i < rates.length; i++) {
-          if (distance <= rates[i].max) {
-            totalFare += rates[i].fare;
-            break;
-          }
-        }
-      });
+function calculateFare(segments, path) {
+  const companySegments = {};
+  
+  // 会社ごとにセグメントをグループ化
+  segments.forEach(seg => {
+    const company = getCompany(seg.line);
+    if (!companySegments[company]) {
+      companySegments[company] = [];
+    }
+    companySegments[company].push(seg);
+  });
+  
+  let totalFare = 0;
+  
+  Object.entries(companySegments).forEach(([company, segs]) => {
+    // 多摩モノレールの特殊処理
+    if (company === "多摩都市モノレール") {
+      totalFare += calculateTamaMonorailFare(path, segs);
+      return;
+    }
+    
+    // 通常の距離制運賃計算
+    const rates = fareRates[company];
+    if (!rates || rates === "special") {
+      console.warn(`運賃データがありません: ${company}`);
+      return;
+    }
+    
+    // 会社ごとの総距離を計算
+    const totalDistance = segs.reduce((sum, seg) => sum + seg.distance, 0);
+    
+    // 運賃表から該当する運賃を検索
+    for (let i = 0; i < rates.length; i++) {
+      if (totalDistance <= rates[i].max) {
+        totalFare += rates[i].fare;
+        break;
+      }
+    }
+    
+    // 最大距離を超えた場合は最大運賃を適用
+    if (totalDistance > rates[rates.length - 1].max) {
+      totalFare += rates[rates.length - 1].fare;
+    }
+  });
+  
+  return totalFare;
+}
+
+// 多摩モノレール専用運賃計算
+function calculateTamaMonorailFare(path, segments) {
+  // 多摩モノレールの駅リスト
+  const tamaStations = [
+    "上北台", "桜街道", "玉川上水", "砂川七番", "泉体育館",
+    "立飛", "高松", "立川北", "立川南", "柴崎体育館",
+    "甲州街道", "万願寺", "高幡不動", "程久保", "多摩動物公園",
+    "中央大学・明星大学", "大塚・帝京大学", "松が谷", "多摩センター"
+  ];
+  
+  // 経路から多摩モノレールの駅だけ抽出
+  const monoStations = path.filter(p => tamaStations.includes(p.station)).map(p => p.station);
+  
+  if (monoStations.length < 2) return 0;
+  
+  // 立川北・立川南の両方を通過するかチェック
+  const hasTachikawaKita = monoStations.includes("立川北");
+  const hasTachikawaminami = monoStations.includes("立川南");
+  
+  let stationCount = monoStations.length - 1; // 駅数 = 駅の数 - 1
+  
+  // 立川北と立川南の両方を通過する場合、1駅分減らす（同一駅扱い）
+  if (hasTachikawaKita && hasTachikawaminami) {
+    stationCount = stationCount - 1;
+  }
+  
+  // 隣駅（1駅）
+  if (stationCount === 1) {
+    return 102;
+  }
+  
+  // 総距離を計算
+  const totalDistance = segments.reduce((sum, seg) => sum + seg.distance, 0);
+  
+  // 距離制運賃表
+  if (totalDistance <= 3) return 214;
+  if (totalDistance <= 5) return 265;
+  if (totalDistance <= 7) return 316;
+  if (totalDistance <= 10) return 367;
+  if (totalDistance <= 16) return 408;
+  return 408;
+}
       
       // メトロ・都営の乗継割引
       if (companyDistances["東京メトロ"] && companyDistances["都営地下鉄"]) {
@@ -1224,7 +1324,7 @@ const routeData = {
     // 経路を表示（バッジ付き）
     function displayRoute(route, labels, start, end) {
       const resultDiv = document.getElementById('result');
-      const fare = calculateFare(route.segments);
+      const fare = calculateFare(route.segments, route.path);
       const transfers = countTransfers(route.segments);
       const simpleStations = getSimpleRoute(route.segments, start, end);
       
