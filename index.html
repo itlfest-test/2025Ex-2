@@ -105,17 +105,24 @@
     <!-- お気に入りエリア -->
     <section id="favorites-area" class="card hidden">
       <h2>⭐ お気に入り</h2>
+      
+      <!-- カレンダー表示部分 -->
+      <div class="calendar-container" style="margin-bottom: 24px;">
+        <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <button id="calendar-prev-month" class="btn ghost" style="padding: 8px 16px;">← 前月</button>
+          <h3 id="calendar-month-title" style="margin: 0;">2025年10月</h3>
+          <button id="calendar-next-month" class="btn ghost" style="padding: 8px 16px;">次月 →</button>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </div>
+      
+      <hr style="margin: 24px 0;">
+      
+      <h3>⭐ お気に入り一覧</h3>
       <div id="favorites-list"></div>
       <hr style="margin:1.5rem 0;">
       <h3>🕘 履歴</h3>
       <div id="fav-history"></div>
-    </section>
-
-    <!-- カレンダーエリア -->
-    <section id="calendar-area" class="card" style="display: none;">
-      <h2>📅 マイカレンダー</h2>
-      <p class="muted" style="margin-bottom: 16px;">追加したイベントの一覧です。時間の重複があるイベントは⚠️マークで表示されます。</p>
-      <div id="calendar-list"></div>
     </section>
 
     <!-- 乗換案内エリア -->
@@ -146,11 +153,14 @@
       <div id="transit-result"></div>
     </div>
 
-    <!-- カレンダーエリア -->
-    <section id="calendar-area" class="card hidden">
-      <h2>📅 マイカレンダー</h2>
-      <p class="muted" style="margin-bottom: 16px;">追加したイベントの一覧です。時間の重複があるイベントは⚠️マークで表示されます。</p>
-      <div id="calendar-list"></div>
+    <!-- マップエリア -->
+    <section id="map-area" class="card hidden">
+      <h2>🗺️ キャンパスマップ</h2>
+      <div class="map-placeholder" style="text-align: center; padding: 60px 20px; background: #f9fafb; border-radius: 8px; color: #6b7280;">
+        <p style="font-size: 1.2em; margin-bottom: 8px;">🗺️</p>
+        <p>マップ機能は準備中です</p>
+        <p style="font-size: 0.9em; margin-top: 8px;">近日公開予定</p>
+      </div>
     </section>
 
     <!-- 情報エリア -->
