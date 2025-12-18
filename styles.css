@@ -801,3 +801,112 @@ select.options{
   margin-top: 2px;
   color: #6b7280;
 }
+/* ==========================================
+   カレンダーグリッド
+   ========================================== */
+
+.calendar-container {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 4px;
+  font-size: 0.85em;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  min-height: 50px;
+}
+
+.calendar-day:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day.empty {
+  background: #fafafa;
+  cursor: default;
+  border-color: #f3f4f6;
+}
+
+.calendar-day.empty:hover {
+  background: #fafafa;
+  transform: none;
+  box-shadow: none;
+}
+
+.calendar-day.has-event {
+  background: #dbeafe;
+  font-weight: 600;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.calendar-day.has-event:hover {
+  background: #bfdbfe;
+}
+
+.calendar-day-number {
+  font-size: 1.1em;
+  margin-bottom: 2px;
+}
+
+.calendar-day-count {
+  font-size: 0.7em;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-top: 2px;
+}
+
+.calendar-day.has-event .calendar-day-count {
+  background: #93c5fd;
+  color: #1e3a8a;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 640px) {
+  .calendar-day {
+    min-height: 40px;
+    padding: 4px 2px;
+    font-size: 0.8em;
+  }
+  
+  .calendar-day-number {
+    font-size: 1em;
+  }
+  
+  .calendar-day-count {
+    font-size: 0.65em;
+    padding: 1px 4px;
+  }
+}
