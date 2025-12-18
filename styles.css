@@ -742,3 +742,62 @@ select.options{
 .festival-slider-card:hover {
   transform: scale(1.02);
 }
+/* カレンダーグリッド */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 4px;
+  font-size: 0.85em;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-day:hover {
+  background: #f3f4f6;
+}
+
+.calendar-day.empty {
+  background: #fafafa;
+  cursor: default;
+}
+
+.calendar-day.has-event {
+  background: #dbeafe;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.calendar-day.has-event:hover {
+  background: #bfdbfe;
+}
+
+.calendar-day-number {
+  font-size: 1.1em;
+}
+
+.calendar-day-count {
+  font-size: 0.75em;
+  margin-top: 2px;
+  color: #6b7280;
+}
